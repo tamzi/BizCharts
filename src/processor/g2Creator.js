@@ -158,6 +158,11 @@ export default {
       return;
     }
     if (viewConfig.g2Instance) {
+      if (viewConfig.filter) {
+        viewConfig.filter.forEach((filterArg) => {
+          viewConfig.g2Instance.filter(filterArg[0], filterArg[1]);
+        });
+      }
       this.coord(viewConfig.g2Instance, viewConfig);
       this.axises(viewConfig.g2Instance, viewConfig);
       this.geoms(viewConfig.g2Instance, viewConfig);
@@ -168,7 +173,9 @@ export default {
        Others object must exclude geoms property.
        Because geoms property will cover the g2 view' inner geoms property.
     */
-    const { scale, data, instance, axis, geoms, ...others } = viewConfig.props;
+    /* eslint-disable  no-unused-vars */
+    const { scale, data, instance, axis, filter, geoms, ...others } = viewConfig.props;
+    /* eslint-enable */
     let view;
     if (instance) {
       view = instance;
@@ -184,6 +191,12 @@ export default {
       view.scale(scale);
     }
 
+    if (filter) {
+      filter.forEach((filterArg) => {
+        view.filter(filterArg[0], filterArg[1]);
+      });
+    }
+
     if (!(axis === true || instance)) {
       view.axis(false);
     }
@@ -197,8 +210,9 @@ export default {
   },
 
   facetView(view, viewConfig) {
+    /* eslint-disable  no-unused-vars */
     const { scale, data, axis, geoms, ...others } = viewConfig.props;
-
+    /* eslint-enable */
     if (data) {
       view.source(data, scale);
     }
@@ -227,7 +241,9 @@ export default {
       if (guides[id]) {
         const guideConfig = guides[id];
         if (!guideConfig.g2Instance) {
+          /* eslint-disable  no-unused-vars */
           const { type, ...others } = guideConfig.props;
+          /* eslint-enable */
           guideConfig.g2Instance = chart.guide()[guideConfig.type](others);
         }
       }
@@ -292,8 +308,9 @@ export default {
     */
     view.clear();
     this.clearViewG2Instance(viewConfig);
+    /* eslint-disable  no-unused-vars */
     const { scale, data, instance, axis, geoms, ...others } = viewConfig.props;
-
+    /* eslint-enable */
     if (data) {
       view.source(data, scale);
     }

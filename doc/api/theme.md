@@ -1,6 +1,6 @@
 
 # Theme
-默认主题配置项详情。如果用户需要自定主题，可以根据以下参数自由定制。
+以下是默认主题的详细样式，你可以根据这些主题样式属性自定义主题。
 
 ```jsx
 const DEFAULT_COLOR = '#1890FF';
@@ -15,7 +15,7 @@ const COLOR_PIE_16 = [ '#1890FF', '#73C9E6', '#13C2C2', '#6CD9B3', '#2FC25B', '#
   '#F04864', '#D66BCA', '#8543E0', '#8E77ED', '#3436C7', '#737EE6', '#223273', '#7EA2E6' ];
 
 const FONT_FAMILY = '"Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", SimSun, "sans-serif"';
-// tooltip 相关 dom 的 css 类名
+// tooltip's dom element classname
 const TOOLTIP_CONTAINER_CLASS = 'g2-tooltip';
 const TOOLTIP_TITLE_CLASS = 'g2-tooltip-title';
 const TOOLTIP_LIST_CLASS = 'g2-tooltip-list';
@@ -23,12 +23,12 @@ const TOOLTIP_LIST_ITEM_CLASS = 'g2-tooltip-list-item';
 const TOOLTIP_MARKER_CLASS = 'g2-tooltip-marker';
 
 const Theme = {
-  defaultColor: DEFAULT_COLOR, // 默认主题色
+  defaultColor: DEFAULT_COLOR, // default theme color
   plotCfg: {
     padding: [ 20, 20, 95, 80 ]
   },
   fontFamily: FONT_FAMILY,
-  defaultLegendPosition: 'bottom', // 默认图例的展示位置
+  defaultLegendPosition: 'bottom',
   colors: COLOR_PLATE_8,
   colors_16: COLOR_PLATE_16,
   colors_24: COLOR_PLATE_24,
@@ -45,7 +45,6 @@ const Theme = {
   opacities: [ 0.1, 0.9 ],
   axis: {
     top: {
-      // zIndex: 1, // 默认上下方向的坐标轴位于左右坐标轴的上方
       position: 'top',
       title: null,
       label: {
@@ -243,13 +242,12 @@ const Theme = {
     },
     labelHeight: 14,
     offset: 30
-    // 在theta坐标系下的饼图文本的样式
   },
   legend: {
     right: {
       position: 'right',
       layout: 'vertical',
-      itemMarginBottom: 8, // layout 为 vertical 时各个图例项的间距
+      itemMarginBottom: 8,
       width: 16,
       height: 156,
       title: null,
@@ -309,7 +307,7 @@ const Theme = {
         textAlign: 'start',
         textBaseline: 'middle',
         lineHeight: 20
-      }, // 图例项文本的样式
+      },
       unCheckColor: '#bfbfbf'
     }
   },
@@ -370,14 +368,14 @@ const Theme = {
       ctx.restore();
     },
     radius: 4
-  }, // 提示信息在折线图、区域图上形成点的样式
+  },
   tooltipCrosshairsRect: {
     type: 'rect',
     style: {
       fill: '#CCD6EC',
       opacity: 0.3
     }
-  }, // tooltip 辅助背景框样式
+  },
   tooltipCrosshairsLine: {
     style: {
       stroke: 'rgba(0, 0, 0, 0.25)',
@@ -466,10 +464,10 @@ const Theme = {
     },
     region: {
       style: {
-        lineWidth: 0, // 辅助框的边框宽度
-        fill: '#000', // 辅助框填充的颜色
-        fillOpacity: 0.04 // 辅助框的背景透明度
-      } // 辅助框的图形样式属性
+        lineWidth: 0,
+        fill: '#000',
+        fillOpacity: 0.04
+      }
     },
     html: {
       alignX: 'middle',

@@ -1,22 +1,34 @@
+<!--
+index: 15
+title: Theme 图表皮肤主题
+resource:
+  jsFiles:
+    - ${url.dataSet}
+    - ${url.g2}
+-->
 
 # 主题
 
+**引用: [G2 Theme](https://antv.alipay.com/zh-cn/g2/3.x/tutorial/theme.html)**
+
 ## 图表主题
-BizCharts 默认提供了两种主题:default、dark。
+Bizcharts 提供了两种内建的主题: `default` and `dark`.
 <img src="https://gw.alipayobjects.com/zos/rmsportal/EQadCjVFfaXjuPbSySJp.png" width="80%">
 
-## 主题切换
-用户可以使用 `BizCharts.setTheme(themeName)` api 切换图表的主题。
+## 如何改变主题
 
-示例：
+你可以通过 `BizCharts.setTheme(themeName)` API 来改变主题.
+
+Exmaple:
+
 ```jsx
   BizCharts.setTheme('dark');
 ```
 
 ## 自定义主题
-用户可以使用 `BizCharts.setTheme(themeConfig)` api 切换自定义的主题。
+当调用  `BizCharts.setTheme()` API 传入的参数是一个对象时，这个时候代表使用你自定义的主题配置。
 
-示例：
+Example:
 ```jsx
   const seaTheme = {
     animate:false,
@@ -25,4 +37,5 @@ BizCharts 默认提供了两种主题:default、dark。
   };
   BizCharts.setTheme(seaTheme);
 ```
-更多主题配置请参见 [defaultTheme](../api/theme.md)
+
+更多的自定义配置项, 请参考 [Theme API](/doc/api/theme.md)
