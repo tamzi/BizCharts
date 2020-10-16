@@ -1,18 +1,28 @@
-![](https://img.shields.io/badge/language-react-red.svg)  ![](https://img.shields.io/badge/license-MIT-000000.svg)  [![NPM Package](https://img.shields.io/npm/v/bizcharts.svg)](https://www.npmjs.com/package/bizcharts) [![NPM Downloads](https://img.shields.io/npm/dm/bizcharts.svg)](https://npmjs.org/package/bizcharts)
-
 # BizCharts
 
-BizCharts: a powerful data visualization library based [G2](https://antv.alipay.com/) React。
+[![](https://img.shields.io/travis/alibaba/BiaCharts.svg)](https://travis-ci.com/alibaba/BizCharts)
+![](https://img.shields.io/badge/language-react-red.svg)  ![](https://img.shields.io/badge/license-MIT-000000.svg)  [![NPM Package](https://img.shields.io/npm/v/bizcharts.svg)](https://www.npmjs.com/package/bizcharts) [![NPM Downloads](https://img.shields.io/npm/dm/bizcharts.svg)](https://npmjs.org/package/bizcharts)
 
-[More details about BizCharts](https://alibaba.github.io/BizCharts/)
+New charting and visualization library has been released: http://bizcharts.net/products/bizCharts.
+
+[More details about BizCharts](http://bizcharts.net/index)
 
 ## Features
-- easy to use
-- strong expansion capability
-- support most data visualization charts
+- React ES6 grammar
+- Easy to use
+- Strong expansion capability
+- Support most data visualization charts
 
-[see more demos](https://alibaba.github.io/BizCharts/demo.html)
+[See more demos.](http://bizcharts.net/products/bizCharts/demo)
+
 <img src="https://user-images.githubusercontent.com/6628666/33157917-b970a70c-d040-11e7-9601-b1da1dbe26ab.png" width="800">
+
+## Releases
+
+- v3.5.x: https://bizcharts.net/product/bizcharts/gallery
+- V4.0.0: https://bizcharts.net/product/BizCharts4/gallery
+
+Upgrade document: https://bizcharts.net/product/BizCharts4/category/61/page/104
 
 ## Installation
 
@@ -26,71 +36,47 @@ $ npm install bizcharts
  <script src="https://unpkg.com/bizcharts@${version}/umd/BizCharts.min.js"></script>
 ```
 
-### dev build
+### Dev build
 ```sh
 $ git clone https://github.com/alibaba/BizCharts.git
 $ cd BizCharts
 $ npm install
+$ npm start
 $ npm run build
 ```
 
-### dev demo
-
-```sh
-$ sudo vi /etc/hosts
-// add 127.0.0.1 localhost
-$ npm run[-script] demo
-// open in browser http://localhost:3510/
+### Test snapshot
+Does not support external network testing right now.
+```
+tnpm run uitest
 ```
 
 ## Usage
+[Try it out](https://bizcharts.net/product/BizCharts4/demo/305)
+
 ```jsx
-import {Chart, Axis, Tooltip, Geom} from "bizcharts";
+import {Chart, Axis, Tooltip, Line, Point} from "bizcharts";
 
 const data = [...];
 
 <Chart height={400} data={data} forceFit>
-  <Axis name="month" />
   <Axis name="temperature" label={{formatter: val => `${val}°C`}} />
-  <Tooltip crosshairs={{type : "y"}} />
-  <Geom type="line" position="month*temperature" size={2} color={'city'} />
-  <Geom type='point' position="month*temperature" size={4} color={'city'} />
+  <Line position="month*temperature" size={2} color={'city'} />
+  <Point position="month*temperature" size={4} color={'city'} />
 </Chart>
 ```
 
-## Document
-### tutorial
-- [quick start](doc/tutorial/start.md)
-- [chart introduce](./doc/tutorial/chart.md)
-- [chart type](./doc/tutorial/chartType.md)
-- [data](./doc/tutorial/data.md)
-- [DataSet](./doc/tutorial/dataset.md)
-- [dataflow](./doc/tutorial/dataflow.md)
-- [theme](./doc/tutorial/theme.md)
-- [interaction](./doc/tutorial/interaction.md)
-- [animation](./doc/tutorial/animate.md)
 
-### api
-- [BizCharts](./doc/api/bizcharts.md)
-- components
-  - [Chart](./doc/api/chart.md)
-  - [Coord](./doc/api/coord.md)
-  - [Axis](./doc/api/axis.md)
-  - [Geom](./doc/api/geom.md)
-  - [Label](./doc/api/label.md)
-  - [Legend](./doc/api/legend.md)
-  - [Tooltip](./doc/api/tooltip.md)
-  - [Guide](./doc/api/guide.md)
-  - [Facet](./doc/api/facet.md)
-  - [View](./doc/api/view.md)
-- Plugin
-  - [Slider](//github.com/alibaba/BizCharts/blob/slider/plugin/slider/README.md)
-- others
-  - [scale](./doc/api/scale.md)
-  - [shape](./doc/api/shape.md)
-  - [dataset](./doc/api/dataset.md)
-  - [connector](./doc/api/connector.md)
-  - [transform](./doc/api/transform.md)
-  - [theme](./doc/api/theme.md)
+### [FAQ](http://bizcharts.net/products/bizCharts/docs/qa)
 
-### [FAQ](./doc/faq/faq.md)
+### How to Contribute
+We welcome all contributions. You could submit any ideas as pull requests. Thank you for your interest and have a good time.
+Please let us know how can we help. Do check out [issues](https://github.com/alibaba/BizCharts/issues) for bug reports or suggestions first.
+
+
+#### Update
+
+G2 decided to terminate the "Experience Improvement Program". In verson `@antv/g2@3.4.7`（released at 2018.12.26） and above, all tracking code is removed, no unexpected remote request will be sent while you are using G2. And Bizcharts Upgrade the dependent version the first time at 2018.12.26 24:00.
+
+### License
+BizCharts is available under the License MIT.

@@ -1,86 +1,39 @@
-# 3.1.7(5.2, 2018)
-- fix main Entrance
 
-# 3.1.6(5.2, 2018)
-- up g2 version
-- fix ts issue
-- fix package browser module
+## 4.0.13
+- g2@2.0.14
+- g2Plot@1.1.23
+##### feature
+- plot 组件支持forceUpdate
 
-# 3.1.5(4.10, 2018)
-- fix issue 244\249\210
+## 4.0.12 
+- g2@2.0.14
+- g2Plot@1.1.15
+##### bugfix
+- Tooltip triggerOn="click" 点击后才展示。
+- 图表销毁和react销毁顺序问题导致，自定义tooltip 偶发removeChild 错误。
+##### feature
+- 新增 LineAdvance 的图形组件。
+- 图表联动，当前支持没有设置adjust的图表联动。详细见Tooltip linkage 属性文档。
+- Tooltip 点击后锁定位置。详见 Tooltip lock 属性文档。
 
-# 3.1.4(3.26, 2018)
-- add types in package.json.
+### 4.0.11 (2020-07-23)
+##### g2依赖 升级
+- g2@2.0.12
+- g2Plot@1.1.7 
+##### bugfix
+- react-reconciler required but not add into deps #1219
+- Duplicate export #1221
+- 修复Coordinate组件的action属性
 
-# 3.1.4-beta.4(3.26, 2018)
-- update g2 3.0.5-beta.5
-- fix types g2 ts.index path.
-- delete no need console logs.
+### 4.0.10 (2020-07-14)
+##### g2依赖 升级
+- g2@2.0.12
+- g2Plot@1.1.7 
+##### bugfix
+- Roboto字体带来的,中文裁切问题 
+- 适配 g2 新增的一层div，dom 结构变化影响自定义Tooltip定位。
 
-# 3.1.4-beta.3(3.12, 2018)
-- update g2 3.0.5-beta.4
-- when props change nothing, bizcharts will not repaint chart.
 
-# 3.1.4-beta.2(3.6, 2018)
-- fix node-env development do not use prop-types as external lib.
+··· 中间是欠大家的log
 
-# 3.1.4-beta.1(3.6, 2018)
-- bizcharts/umd do not use prop-types as external lib.
-
-# 3.1.3(3.2, 2018)
-- fix issue 184, 99, 174, 164
-- update g2 3.0.5-beta.4
-
-# 3.1.3-beta.2 (2.1, 2018)
-- delete array.prototype find, and use for in to find
-- update g2 3.0.5-beta.1
-
-# 3.1.3-beta.1 (1.29, 2018)
-- Compatible with ie10&9
-- update g2 3.0.4
-
-# 3.1.2 (1.18, 2017)
-- fix `<Label>` prop update.
-
-# 3.1.1 (1.18, 2017)
-- update g2 3.0.4-beta.4.
-- when data=null show g2 axis.
-
-# 3.1.0 (1.07, 2017)
-the release version which compate react16.
-
-# 3.1.0-beta.6 (12.29, 2017)
-delete the no need dependence react-dom.
-fix https://github.com/alibaba/BizCharts/issues/67
-
-# 3.1.0-beta.4 (12.28, 2017)
-fixed update padding over and over again, geoms will be null.
-
-# 3.1.0-beta.3 (12.28, 2017)
-upgrade g2 version to 3.0.4-beta.2.
-fixed resize and update padding in the same time, g2 crash.
-
-# 3.1.0-beta.2 (12.27, 2017)
-fix `<Axis visible={false}>` do not work.
-add placeholder property to handle data is null.
-
-# 3.1.0-beta.1 (12.22, 2017)
-Compatible with react16 version.
-The use of facet changes, see [facet api doc]( https://github.com/alibaba/BizCharts/blob/master/doc/api/facet.md).
-
-# 3.0.5 (12.13, 2017)
-Synchronization to g2 3.0.1 release version.
-
-# 3.0.4 (12.04, 2017)
-fix chart invalid onPlotClick event.
-
-# 3.0.3 (11.28, 2017)
-fix when resize chart container size, chart's label will be drawed twice.
-
-# 3.0.2 (11.23, 2017)
-修复包入口，改为打包后的 umd 格式文件。
-修改 Readme.md, 加入中英文双语介绍。
-
-# 3.0.1 (11.22, 2017)
-修复 3.0.0 导出问题，使用时需要 BizCharts.default.Chart。
-修复后直接可以 BizCharts.Chart 这样使用。
+### 4.0.0 正式发布 (2020-04-30)
