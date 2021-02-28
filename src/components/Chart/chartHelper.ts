@@ -3,25 +3,18 @@ import _each from '@antv/util/lib/each';
 import _isFunction from '@antv/util/lib/is-function';
 import _isArray from '@antv/util/lib/is-array';
 import _isEqual from '@antv/util/lib/is-equal';
-import HTMLComponent from '@antv/component/lib/abstract/html-component';
 import { Chart as G2Chart } from '../../core';
-import warn from '../../utils/warning';
+import warn from 'warning';
 import shallowEqual from '../../utils/shallowEqual';
 import pickWithout from '../../utils/pickWithout';
 import cloneDeep from '../../utils/cloneDeep';
 import { REACT_PIVATE_PROPS } from '../../utils/constant';
+import { VIEW_LIFE_CIRCLE } from '@antv/g2/lib/constant';
+import EventEmitter from '@antv/event-emitter';
 
 import { IEvent } from '../../interface';
 import { pickEventName } from './events';
-
-// @ts-ignore
-HTMLComponent.prototype.removeDom = () => {
-  const container = this.get('container');
-  if (container && container.parentNode) {
-    container.parentNode.removeChild(container);
-  }
-}
-
+import { extend } from '@antv/util';
 
 const processData = (data) => {
   if (data && data.rows) {
@@ -30,7 +23,7 @@ const processData = (data) => {
   return data;
 }
 
-class ChartHelper {
+class ChartHelper extends EventEmitter {
   public chart: G2Chart;
   public config: Record<string, any> = {};
   private isNewInstance: boolean;
@@ -38,7 +31,7 @@ class ChartHelper {
   public key: string;
   
   createInstance(config) {
-    this.chart = new G2Chart(config);
+    this.chart = new G2Chart({ ...config });
     this.key = uniqueId('bx-chart');
     this.chart.emit('initialed');
     this.isNewInstance = true; // 更新了实例的标记
@@ -51,17 +44,34 @@ class ChartHelper {
     if (!this.chart) {
       return;
     }
-    if (this.isNewInstance) {
+    // this.chart.render();
+    // if (this.isNewInstance) {
+    //   this.onGetG2Instance();
+    //   // @ts-ignore
+    //   this.chart.unbindAutoFit(); // 不使用g2的监听
+    //   this.isNewInstance = false;
+    // }
+    // // 处理elements状态
+    // this.chart.emit('processElemens');
+    try {
+      // 普通error 只能兜住react render周期里的error。 chart render周期的error 要单独处理
       this.chart.render();
-      this.onGetG2Instance();
-      // @ts-ignore
-      this.chart.unbindAutoFit(); // 不使用g2的监听
-      this.isNewInstance = false;
-    } else {
-      this.chart.render(true);
+      if (this.isNewInstance) {
+        this.onGetG2Instance();
+        // @ts-ignore
+        this.chart.unbindAutoFit(); // 不使用g2的监听
+        this.isNewInstance = false;
+      }
+      // 处理elements状态
+      this.chart.emit('processElemens');
+
+    } catch(e) {
+      this.emit('renderError', e);
+      this.destory();
+      if(console) {
+        console.error(e?.stack)
+      }
     }
-    // 处理elements状态
-    this.chart.emit('processElemens');
   }
   private onGetG2Instance() {
     // 当且仅当 isNewInstance 的时候执行。
@@ -77,12 +87,13 @@ class ChartHelper {
     const { data:preData, ...preOptions} = this.config;
     const { data, ...options } = newConfig;
     if (_isArray(this.config.data)
-      && this.config.data.length === 0
+      && preData.length === 0
       && _isArray(data)
       && data.length !== 0 ) {
       return true;
     }
-    const unCompareProps = [...REACT_PIVATE_PROPS, 'width', 'height', 'container', '_container', '_interactions', 'placeholder',  /^on/, /^\_on/];
+    // scale 切换不需要重建实例
+    const unCompareProps = [...REACT_PIVATE_PROPS, 'scale', 'width', 'height', 'container', '_container', '_interactions', 'placeholder',  /^on/, /^\_on/];
     if (!_isEqual(pickWithout(preOptions, [...unCompareProps]),
       pickWithout(options, [...unCompareProps]))) {
       return true;
@@ -91,10 +102,12 @@ class ChartHelper {
   }
   update(props) {
     const newConfig = cloneDeep(this.adapterOptions(props));
+
     if (this.shouldReCreateInstance(newConfig)) {
       this.destory();
       this.createInstance(newConfig);
     }
+
     // 重置
     if (newConfig.pure) {
       // 纯画布 关闭
@@ -128,11 +141,17 @@ class ChartHelper {
       this.chart.on(evName[1], newConfig[`_${evName[0]}`])
     });
 
-    // 数据
+    // 数据 更新
     if(_isArray(preData) && preData.length) {
       // 数据只做2级浅比较
+      // fixme: 做4级比较
       let isEqual = true;
+      if (newConfig.notCompareData) {
+        // 手动关闭对比
+        isEqual = false;
+      }
       if (preData.length !== data.length) {
+        // 长度不相等
         isEqual = false;
       } else {
         preData.forEach((element, index) => {
@@ -142,7 +161,20 @@ class ChartHelper {
         });
       }
       if (!isEqual) {
-        this.chart.changeData(data);
+        // @ts-ignore
+        this.chart.isDataChanged = true;
+        this.chart.emit(VIEW_LIFE_CIRCLE.BEFORE_CHANGE_DATA);
+        // 1. 保存数据
+        this.chart.data(data);
+        // 2. 最后再渲染
+        // 3. 遍历子 view 进行 change data
+        const views = this.chart.views;
+        for (let i = 0, len = views.length; i < len; i++) {
+          const view = views[i];
+          // 子 view 有自己的数据, 会在执行view的配置时会覆盖
+          view.changeData(data);
+        }
+        this.chart.emit(VIEW_LIFE_CIRCLE.AFTER_CHANGE_DATA);
       }
     } else {
       this.chart.data(data);
@@ -150,6 +182,13 @@ class ChartHelper {
 
     // 比例尺
     this.chart.scale(options.scale);
+
+    // 动画
+    if (options.animate === false) {
+      this.chart.animate(false);
+    } else {
+      this.chart.animate(true);
+    }
 
     // 交互 interactions
     preInteractions.forEach(interact => {
@@ -187,11 +226,9 @@ class ChartHelper {
   adapterOptions({data, ...others}) {
     // 剔除 React 自身的属性
     const options = pickWithout(others, [...REACT_PIVATE_PROPS]);
-    // 适配
-    const { forceFit } = options;
-    if (forceFit) {
-      options.autoFit = forceFit;
-      warn(false, 'forceFit 将会在4.1后不再支持，请使用`autoFit`替代');
+
+    if (options.forceFit) {
+      warn(false, 'forceFit 已废弃，请使用`autoFit`替代');
     }
     options.data = processData(data) || [];
     return options;
@@ -202,12 +239,8 @@ class ChartHelper {
     }
     this.extendGroup = null;
     let { chart } = this;
-    chart.hide();
-    setTimeout(() => {
-      // 大坑勿改: 这样做是为了等react 先卸载，再销毁图表实例。
-      chart.destroy();
-      chart = null;
-    }, 0)
+    chart.destroy();
+    chart = null;
     this.chart = null;
     this.config = {};
   }

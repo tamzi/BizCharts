@@ -3,7 +3,7 @@ import _isArray from '@antv/util/lib/is-array';
 import _deepMix from '@antv/util/lib/deep-mix';
 import _each from '@antv/util/lib/each';
 import G2View from '@antv/g2/lib/chart/view';
-import warn from '../../utils/warning';
+import warn from 'warning';
 import shallowEqual from '../../utils/shallowEqual';
 
 
@@ -99,8 +99,8 @@ export default class ViewHelper {
   }
   processOptions(options) {
     const { region, start, end, ...other } = options;
-    warn(!start, 'start 属性将在4.1后废弃，请使用 region={{ start: {x:0,y:0}}} 替代');
-    warn(!end, 'end 属性将在4.1后废弃，请使用 region={{ end: {x:0,y:0}}} 替代');
+    warn(!start, 'start 属性将在5.0后废弃，请使用 region={{ start: {x:0,y:0}}} 替代');
+    warn(!end, 'end 属性将在5.0后废弃，请使用 region={{ end: {x:0,y:0}}} 替代');
 
     const regionCfg = _deepMix(
       { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } },

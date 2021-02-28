@@ -1,5 +1,6 @@
 
 import { View, Chart } from '@antv/g2/lib/chart';
+import { ErrorBoundaryProps } from 'react-error-boundary';
 import {
   ViewPadding,
   ScaleOption,
@@ -44,10 +45,13 @@ export type ShapeString = string;
 export type SizeRange = [number, number];
 
 export interface IChartProps extends IViewProps {
+  forceUpdate?: boolean;
   /** 指定 chart 绘制的 DOM，可以传入 DOM id，也可以直接传入 dom 实例。 */
   container?: HTMLElement;
   /** 图表宽度。 */
   width?: number;
+  /** 当数据量过大的时候，可以手动关闭此选项，避免对比数据带来的性能开销 */
+  notCompareData?: boolean;
   /** 图表高度。 */
   height?: number;
   /**
@@ -120,7 +124,18 @@ export interface IChartProps extends IViewProps {
   events?: {
     [EventName: string]: EventFunc
   },
+  /** 
+   * 发生错误的时候显示的内容, errorContent api已调整，
+   * 请使用 ErrorBoundaryProps
+   * @example ErrorBoundaryProps={{FallbackComponent: error => <div>{error}</div>}}
+  */
+  errorContent? : React.ReactElement<unknown, string | React.FunctionComponent<{}>>,
   [key: string]: any;
+  /** 
+   *  ErrorBoundary 使用的是 react-error-boundary, 可通过ErrorBoundaryProps透传其属性
+   *  @example ErrorBoundaryProps={{FallbackComponent: error => <div>{error}</div>}}
+   */
+  ErrorBoundaryProps?: ErrorBoundaryProps,
 }
 
 

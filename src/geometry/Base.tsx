@@ -7,7 +7,7 @@ import { IBaseGemoProps } from '../interface';
 import ChartViewContext from '../context/view';
 import { registerGeometryLabel } from '../core';
 import compareProps from '../utils/compareProps';
-import warn from '../utils/warning';
+import warn from 'warning';
 import './Label';
 
 // 交互事件
@@ -18,26 +18,43 @@ registerGeometryLabel('base', GeometryLabel);
 
 export { IBaseGemoProps };
 
+const DEFAULT_SORT_GEOMETRYS = ['line', 'area'];
+
 class GeomHelper {
   public view;
   public rootChart;
   public geom: Geometry;
   public config: Record<string,any> = {};
-  public GemoBaseClassName:string;
-  public interactionTypes:string[];
+  public GemoBaseClassName: string;
+  public interactionTypes: string[];
   setView(view) {
     this.view = view;
     this.rootChart = view.rootChart || view; // 顶层chart实例
   }
-  createGeomInstance(GemoBaseClassName) {
-    this.geom = this.view[GemoBaseClassName]();
+  createGeomInstance(GemoBaseClassName, cfg) {
+    this.geom = this.view[GemoBaseClassName](cfg);
+    const { sortable } = cfg;
+    // 复写原型
+    // @ts-ignore
+    this.geom.__beforeMapping = this.geom.beforeMapping;
+    // @ts-ignore
+    this.geom.beforeMapping = function(data) {
+
+      const xScale = this.getXScale();
+      if ( sortable !== false && data && data[0] && DEFAULT_SORT_GEOMETRYS.includes(GemoBaseClassName) && ['time', 'timeCat'].includes(xScale.type)) {
+        this.sort(data);
+      }
+      return this.__beforeMapping(data);
+    }
     this.GemoBaseClassName = GemoBaseClassName;
   }
   update(newConfig, component) {
     if (!this.geom) {
       this.setView(component.context);
-
-      this.createGeomInstance(component.GemoBaseClassName);
+      const { sortable, visible, connectNulls } = newConfig;
+      const cfg = { sortable, visible, connectNulls };
+      // 如果是时间类型则对数据排序
+      this.createGeomInstance(component.GemoBaseClassName, cfg);
       this.interactionTypes = component.interactionTypes;
     }
     compareProps(
@@ -112,7 +129,7 @@ abstract class BaseGeom<T extends IBaseGemoProps> extends React.Component<T> {
   render() {
     this.geomHelper.update(this.props, this);
     return <>{React.Children.map(this.props.children, (ele) => {
-      return React.isValidElement(ele) ? React.cloneElement(ele, {parentInstance: this.geomHelper.geom}) : null
+      return React.isValidElement(ele) ? React.cloneElement(ele, {parentInstance: this.geomHelper.geom}) : <></>
     })}</>;
   }
 }
