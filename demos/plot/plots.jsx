@@ -79,6 +79,9 @@ function Basic() {
         data={data}
         yField="year"
         xField="value"
+        events={{
+          onColumnClick:console.log
+        }}
       >
         <Tooltip>
           {() => {
@@ -105,6 +108,8 @@ function Basic() {
         onGetG2Instance={() => {
           // console.log('onGetG2Instance', c)
         }}
+        placeholder
+        // data={[]}
         onAfterrender={() => { console.log('onAfterrender') }}
       />
 

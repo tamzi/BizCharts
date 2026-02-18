@@ -14,7 +14,7 @@ import EventEmitter from '@antv/event-emitter';
 
 import { IEvent } from '../../interface';
 import { pickEventName } from './events';
-import { extend } from '@antv/util';
+
 
 const processData = (data) => {
   if (data && data.rows) {
@@ -44,23 +44,20 @@ class ChartHelper extends EventEmitter {
     if (!this.chart) {
       return;
     }
-    // this.chart.render();
-    // if (this.isNewInstance) {
-    //   this.onGetG2Instance();
-    //   // @ts-ignore
-    //   this.chart.unbindAutoFit(); // 不使用g2的监听
-    //   this.isNewInstance = false;
-    // }
-    // // 处理elements状态
-    // this.chart.emit('processElemens');
     try {
       // 普通error 只能兜住react render周期里的error。 chart render周期的error 要单独处理
-      this.chart.render();
       if (this.isNewInstance) {
+        this.chart.render();
         this.onGetG2Instance();
         // @ts-ignore
         this.chart.unbindAutoFit(); // 不使用g2的监听
         this.isNewInstance = false;
+        // @ts-ignore
+      } else if(this.chart.forceReRender) {
+        // forceReRender 填部分g2更新不干净的坑
+        this.chart.render();
+      } else {
+        this.chart.render(true);
       }
       // 处理elements状态
       this.chart.emit('processElemens');
@@ -114,6 +111,8 @@ class ChartHelper extends EventEmitter {
       this.chart.axis(false);
       this.chart.tooltip(false);
       this.chart.legend(false);
+      // @ts-ignore
+      this.chart.isPure = true;
     }
 
     // 事件

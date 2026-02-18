@@ -1,97 +1,93 @@
 import warn from 'warning';
-import { get, set, maxBy, minBy, isNil } from '@antv/util';
+import { get, set, maxBy, minBy, isNil, isObject } from '@antv/util';
 import sum from '../../utils/data-transform/sum';
 import { pickEventName } from '../../components/Chart/events';
 
 interface ReplaceApi {
-  sourceKey: string,
-  targetKey: string,
-  notice: string,
+  sourceKey: string;
+  targetKey: string;
+  notice: string;
 }
 
 // 批量替换api
 export const replaceApi = (replaceApiList: Array<ReplaceApi>, options: object) => {
-  replaceApiList.forEach((item) => {
+  replaceApiList.forEach(item => {
     const { sourceKey, targetKey, notice } = item;
     const value = get(options, sourceKey);
     if (value) {
       warn(false, notice);
       set(options, targetKey, value);
     }
-  })
-}
+  });
+};
 
 /**
- * 将的sourceKey的配置作为targetKey的配置； 
+ * 将的sourceKey的配置作为targetKey的配置；
  * 例如：将angleAxis的作为xAxis的配置
- * @param options object 图表配置项
- * @param sourceKey string
- * @param targetKey  string
  */
-export const replaceAxis = (options, sourceKey = 'angleAxis', targetKey = 'xAxis') => {
-  if (isNil(options[sourceKey])) {
+export const polyfillAxis = (cfg, name) => {
+  const options = get(cfg, name);
+  if (options === false || options === null) {
+    cfg[name] = null;
     return;
   }
-  if (get(options, `${sourceKey}.visible`) === false) {
-    set(options, targetKey, false);
+  if (options === undefined) {
+    return;
+  }
+  if (options === true) {
+    cfg[name] = {};
+    return;
+  }
+  if (!isObject(options)) {
+    warn(true, `${name} 配置参数不正确`);
     return;
   }
 
-  let config = { ...options[sourceKey] };
+  polyfillVisible(options, 'line', null);
+  polyfillVisible(options, 'grid', null);
+  polyfillVisible(options, 'label', null);
+  polyfillVisible(options, 'tickLine', null);
+  polyfillVisible(options, 'title', null);
 
-  if (get(options, `${sourceKey}.line.visible`) === false) {
-    config.line = null;
-  }
+  let label: any = get(options, 'label');
 
-  if (get(options, `${sourceKey}.grid.visible`) === false) {
-    config.grid = null;
-  }
-
-  if (get(options, `${sourceKey}.label.visible`) === false) {
-    config.label = false
-  } else {
-    let label = get(options, `${sourceKey}.label`, {});
-    if (label) {
-      const suffix = { ...label.suffix };
-      if (!isNil(suffix) || suffix) { // 不是undefined null 或 suffix存在
-        label = { ...label, formatter: val => `${val}${suffix}` }
+  if (label) {
+    if (isObject(label)) {
+      const { suffix } = label as any;
+      if (suffix) {
+        // 不是undefined null 或 suffix存在
+        set(label, 'formatter', val => `${val}${suffix}`);
       }
 
-      const { offsetX, offsetY, offset, ...labelCfg } = label;
+      // @ts-ignore
+      const { offsetX, offsetY, offset } = label;
       if (isNil(offset) && (!isNil(offsetX) || !isNil(offsetY))) {
-        if (targetKey === 'xAxis') {
-          label = { ...labelCfg, offset: !isNil(offsetX) ? offsetX : offsetY }
+        if (name === 'xAxis') {
+          set(label, 'offset', !isNil(offsetX) ? offsetX : offsetY);
         }
-        if (targetKey === 'yAxis') {
-          label = { ...labelCfg, offset: !isNil(offsetY) ? offsetY : offsetX }
+        if (name === 'yAxis') {
+          set(label, 'offset', !isNil(offsetY) ? offsetY : offsetX);
         }
       }
-
-      config.label = label;
     }
   }
 
-  if (get(options, `${sourceKey}.tickLine.visible`) === false) {
-    config.tickLine = false
-  }
-
-  if (get(options, `${sourceKey}.title.visible`) === false) {
-    config.title = false
-  }
-  set(options, targetKey, config);
-
-}
+  cfg[name] = {
+    ...options,
+    label,
+  };
+};
 
 // visible的使用转化
-export const polyfillVisible = (polyfillOpt, path) => {
+export const polyfillVisible = (polyfillOpt, path, negativeValue = false) => {
   const vis = get(polyfillOpt, `${path}.visible`);
   if (vis === false || vis === null) {
-    set(polyfillOpt, path, false);
+    set(polyfillOpt, path, negativeValue);
   }
   return vis;
-}
+};
 
-export const polyfillOptions = (opt) => {
+export const polyfillOptions = opt => {
   const polyfillOpt = { ...opt };
 
   // tooltip
@@ -101,8 +97,19 @@ export const polyfillOptions = (opt) => {
   const legendVis = polyfillVisible(polyfillOpt, 'legend');
 
   if (legendVis) {
-    if (get(polyfillOpt, 'legend.title.visible') === false) {
-      set(polyfillOpt, 'legend.title', false);
+    polyfillVisible(polyfillOpt, 'legend.title');
+    const position = get(polyfillOpt, 'legend.position');
+    if (position) {
+      set(
+        polyfillOpt,
+        'legend.position',
+        {
+          'top-center': 'top',
+          'right-center': 'right',
+          'left-center': 'left',
+          'bottom-center': 'bottom',
+        }[position] || position,
+      );
     }
   }
   const formatter = get(polyfillOpt, 'legend.formatter');
@@ -117,6 +124,10 @@ export const polyfillOptions = (opt) => {
 
   // label
   polyfillVisible(polyfillOpt, 'label');
+
+  // axis
+  polyfillAxis(polyfillOpt, 'xAxis');
+  polyfillAxis(polyfillOpt, 'yAxis');
 
   // 辅助线
   const guideLine = get(polyfillOpt, 'guideLine', []);
@@ -144,7 +155,7 @@ export const polyfillOptions = (opt) => {
         text: { content: y },
         ...element,
         type: 'line',
-      }
+      };
       if (!get(polyfillOpt, 'annotations')) {
         set(polyfillOpt, 'annotations', []);
       }
@@ -160,8 +171,7 @@ export const polyfillOptions = (opt) => {
     polyfillOpt.slider = slider.cfg;
   }
   return polyfillOpt;
-}
-
+};
 
 export const polyfillEvents = (chart, preOptions, newOptions) => {
   // 事件兼容
@@ -175,9 +185,9 @@ export const polyfillEvents = (chart, preOptions, newOptions) => {
   newEventNames.forEach(ev => {
     chart.on(ev[1], newOptions.events[ev[0]]);
   });
-}
+};
 
-export const polyfillTitleEvent = (options) => {
+export const polyfillTitleEvent = options => {
   const events = get(options, 'events', {});
   const titleEvents = {};
   [
@@ -187,16 +197,16 @@ export const polyfillTitleEvent = (options) => {
     'onTitleMousemove',
     'onTitleMousedown',
     'onTitleMouseup',
-    'onTitleMouseenter'
+    'onTitleMouseenter',
   ].forEach(e => {
     if (events[e]) {
       titleEvents[e.replace('Title', '')] = events[e];
     }
-  })
+  });
   return titleEvents;
-}
+};
 
-export const polyfillDescriptionEvent = (options) => {
+export const polyfillDescriptionEvent = options => {
   const events = get(options, 'events', {});
   const titleEvents = {};
   [
@@ -206,11 +216,11 @@ export const polyfillDescriptionEvent = (options) => {
     'onDescriptionMousemove',
     'onDescriptionMousedown',
     'onDescriptionMouseup',
-    'onDescriptionMouseenter'
+    'onDescriptionMouseenter',
   ].forEach(e => {
     if (events[e]) {
       titleEvents[e.replace('Description', '')] = events[e];
     }
-  })
+  });
   return titleEvents;
-}
+};

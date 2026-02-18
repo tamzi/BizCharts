@@ -51,16 +51,14 @@ class GeomHelper {
   update(newConfig, component) {
     if (!this.geom) {
       this.setView(component.context);
-      const { sortable, visible, connectNulls } = newConfig;
-      const cfg = { sortable, visible, connectNulls };
       // 如果是时间类型则对数据排序
-      this.createGeomInstance(component.GemoBaseClassName, cfg);
+      this.createGeomInstance(component.GemoBaseClassName, newConfig);
       this.interactionTypes = component.interactionTypes;
     }
     compareProps(
       this.config,
       newConfig,
-      ['position', 'shape', 'color', 'label', 'style', 'tooltip', 'size', 'animate', 'state'],
+      ['position', 'shape', 'color', 'label', 'style', 'tooltip', 'size', 'animate', 'state', 'customInfo'],
       (value, key) => {
         // value 已被转为array
         warn(!(key === 'label' && value[0] === true), 'label 值类型错误，应为false | LabelOption | FieldString')

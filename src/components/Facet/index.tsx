@@ -10,6 +10,7 @@ import Rect from '@antv/g2/lib/facet/rect';
 import Tree from '@antv/g2/lib/facet/tree';
 
 import useChartView from '../../hooks/useChartView';
+import useChartInstance from '../../hooks/useChartInstance';
 import { registerFacet } from '../../core';
 
 registerFacet('rect', Rect);
@@ -19,12 +20,12 @@ registerFacet('matrix', Matrix);
 registerFacet('circle', Circle);
 registerFacet('tree', Tree);
 
-export interface IFacetProps extends FacetCfg<any>, React.Props<any> {
-  type: "circle" | "rect" | "mirror" | "list" | "matrix" | "tree";
+export interface IFacetProps extends FacetCfg<any>, React.PropsWithChildren<any> {
+  type: 'circle' | 'rect' | 'mirror' | 'list' | 'matrix' | 'tree';
   /** 行标题的样式。 */
-  columnTitle?: FacetTitle,
+  columnTitle?: FacetTitle;
   /** 列标题的样式。 */
-  rowTitle?: FacetTitle,
+  rowTitle?: FacetTitle;
   /** 是否转置。 */
   transpose?: boolean;
   /** 标题样式。 */
@@ -34,16 +35,27 @@ export interface IFacetProps extends FacetCfg<any>, React.Props<any> {
   line?: Line;
   /** 绘制每个分面 */
   eachView: (view, facet) => void;
-};
+}
 
 function Facet(props: IFacetProps) {
   const chart = useChartView();
+  const chartInstance = useChartInstance();
   const { type, children, ...cfg } = props;
+  // @ts-ignore
+  if (chart.facetInstance) {
+    // 分面如果已存在不能重复执行，销毁重新配置
+    // @ts-ignore
+    chart.facetInstance.destroy();
+    // @ts-ignore
+    chart.facetInstance = null;
+    // todo: 是否有必要区分数据更新和配置项更新，当前处理为全部都重绘
+    chartInstance.forceReRender = true; // 重新渲染，不能更新
+  }
   if (_isFunction(children)) {
     chart.facet(type, {
       ...cfg,
       // @ts-ignore
-      eachView: children
+      eachView: children,
     });
   } else {
     chart.facet(type, {

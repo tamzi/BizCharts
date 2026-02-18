@@ -156,6 +156,15 @@ describe('geomtrys-Interval', () => {
 		}} />);
 		expect(chart.geometries[0].elements[0].shapeType).toBe('funnel');
 		cleanup()
-  })
-  
+	})
+
+	test('customInfo, props of interval', async () => {
+		let chart = null;
+		render(<Demo shape="funnel" onGetG2Instance={c => {
+			chart = c
+		}} />);
+		expect(chart.geometries[0].elements[0].shapeType).toBe('funnel');
+		cleanup()
+	})
+
 })

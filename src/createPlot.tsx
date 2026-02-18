@@ -1,7 +1,7 @@
 import React, { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 
 import _uniqId from '@antv/util/lib/unique-id';
-import _isEqual from '@antv/util/lib/is-equal';
+
 import _isFunction from '@antv/util/lib/is-function';
 import withContainer from './boundary/withContainer';
 import ErrorBoundary, { ErrorFallback } from './boundary/ErrorBoundary';
@@ -13,15 +13,24 @@ import pickWithout from './utils/pickWithout';
 import cloneDeep from './utils/cloneDeep';
 import { REACT_PIVATE_PROPS } from './utils/constant';
 import { Plot } from '@antv/g2plot/lib/core/plot';
-import ResizeObserver from 'resize-observer-polyfill';
+import { ResizeObserver } from '@juggle/resize-observer';
 import getElementSize from './utils/getElementSize';
 import {
   polyfillEvents,
   polyfillTitleEvent,
   polyfillDescriptionEvent,
 } from './plots/core/polyfill';
-import { debounce, isArray, isNil } from '@antv/util';
+import { debounce, isArray, isFunction, isNil } from '@antv/util';
+import isEqual from './utils/isEqual';
 import warn from 'warning';
+
+// 国际化处理
+import { registerLocale } from '@antv/g2plot/lib/core/locale';
+import { EN_US_LOCALE } from '@antv/g2plot/lib/locales/en_US';
+import { ZH_CN_LOCALE } from '@antv/g2plot/lib/locales/zh_CN';
+/** default locale register */
+registerLocale('en-US', EN_US_LOCALE);
+registerLocale('zh-CN', ZH_CN_LOCALE);
 
 const DEFAULT_PLACEHOLDER = (
   <div
@@ -49,6 +58,10 @@ const TITLE_STYLE: CSSProperties = {
   lineHeight: '20px',
 };
 
+interface VisibleText {
+  visible?: boolean;
+  text: string;
+}
 interface BasePlotOptions {
   /**
    * 获取g2Plot实例的勾子函数
@@ -62,15 +75,20 @@ interface BasePlotOptions {
   /**
    * 图表标题。如需绑定事件请直接使用ReactNode。
    */
-  readonly title?: React.ReactNode;
+  readonly title?: React.ReactNode | VisibleText;
   /**
    * 图表副标题。如需绑定事件请直接使用ReactNode。
    */
-  readonly description?: React.ReactNode;
+  readonly description?: React.ReactNode | VisibleText;
   /**
    * 请使用autoFit替代forceFit
    */
   forceFit?: boolean;
+  /**
+   * 是否是物料组件，因搭建引擎消费ref和原来的组件吐的react实例不兼容。
+   * 该属性会影响ref的消费，为ali-lowcode-engine消费而生。
+   */
+  isMaterial?: boolean;
 }
 
 export { BasePlotOptions };
@@ -87,13 +105,15 @@ class BasePlot extends React.Component<any> {
     }
     polyfillEvents(this.g2Instance, {}, this.props);
     this.g2Instance.data = this.props.data;
-    this.preConfig = pickWithout(this.props, [
-      ...REACT_PIVATE_PROPS,
-      'container',
-      'PlotClass',
-      'onGetG2Instance',
-      'data',
-    ]);
+    this.preConfig = cloneDeep(
+      pickWithout(this.props, [
+        ...REACT_PIVATE_PROPS,
+        'container',
+        'PlotClass',
+        'onGetG2Instance',
+        'data',
+      ]),
+    );
   }
   componentDidUpdate(prevProps) {
     if (this.props.children && this.g2Instance.chart) {
@@ -120,25 +140,6 @@ class BasePlot extends React.Component<any> {
   }
 
   protected checkInstanceReady() {
-    if (!this.g2Instance) {
-      this.initInstance();
-      this.g2Instance.render();
-    } else if (this.shouldReCreate()) {
-      // 只有数据更新就不重绘，其他全部直接重新创建实例。
-      this.g2Instance.destroy();
-      this.initInstance();
-      this.g2Instance.render();
-    } else if (this.diffConfig()) {
-      const options = pickWithout(this.props, [
-        'container',
-        'PlotClass',
-        'onGetG2Instance',
-        'children',
-      ]);
-      this.g2Instance.update(options);
-    } else if (this.diffData()) {
-      this.g2Instance.changeData(this.props.data);
-    }
     // 缓存配置
     const currentConfig = pickWithout(this.props, [
       ...REACT_PIVATE_PROPS,
@@ -147,6 +148,24 @@ class BasePlot extends React.Component<any> {
       'onGetG2Instance',
       'data',
     ]);
+    if (!this.g2Instance) {
+      this.initInstance();
+      this.g2Instance.render();
+    } else if (this.shouldReCreate()) {
+      // forceupdate
+      this.g2Instance.destroy();
+      this.initInstance();
+      this.g2Instance.render();
+    } else if (this.diffConfig()) {
+      // options更新
+      this.g2Instance.update({
+        ...currentConfig,
+        data: this.props.data,
+      });
+    } else if (this.diffData()) {
+      this.g2Instance.changeData(this.props.data);
+    }
+
     this.preConfig = cloneDeep(currentConfig);
     this.g2Instance.data = this.props.data;
   }
@@ -169,7 +188,7 @@ class BasePlot extends React.Component<any> {
       'onGetG2Instance',
       'data',
     ]);
-    return !_isEqual(preConfig, currentConfig);
+    return !isEqual(preConfig, currentConfig);
   }
   diffData() {
     // 只有数据更新就不重绘，其他全部直接重新创建实例。
@@ -217,15 +236,28 @@ class BasePlot extends React.Component<any> {
 const BxPlot = withContainer(BasePlot) as any;
 
 function createPlot<IPlotConfig extends Record<string, any>>(
-  Plot,
+  PlotClass,
   name: string,
   transCfg: Function = cfg => cfg,
 ) {
   const Com = React.forwardRef<any, IPlotConfig>((props: IPlotConfig, ref) => {
-    const { title, description, autoFit = true, forceFit, errorContent = ErrorFallback, placeholder, ErrorBoundaryProps, ...cfg } = props;
-    
+    // containerStyle 应该删掉，可以通过containerProps.style 配置不影响用户暂时保留
+    const {
+      title,
+      description,
+      autoFit = true,
+      forceFit,
+      errorContent = ErrorFallback,
+      containerStyle,
+      containerProps,
+      placeholder,
+      ErrorBoundaryProps,
+      isMaterial,
+      ...cfg
+    } = props;
+
     const realCfg = transCfg(cfg);
-    const container = useRef();
+    const container = useRef<HTMLDivElement>();
     const titleDom = useRef();
     const descDom = useRef();
 
@@ -233,12 +265,14 @@ function createPlot<IPlotConfig extends Record<string, any>>(
     const resizeObserver = useRef<ResizeObserver>();
     const resizeFn = useCallback(() => {
       if (!container.current) {
-        return
+        return;
       }
-      const containerSize = getElementSize(container.current);
-      const titleSize = titleDom.current ? getElementSize(titleDom.current) : { width: 0, height: 0 };
+      const containerSize = getElementSize(container.current, props);
+      const titleSize = titleDom.current
+        ? getElementSize(titleDom.current)
+        : { width: 0, height: 0 };
       const descSize = descDom.current ? getElementSize(descDom.current) : { width: 0, height: 0 };
-      let ch = (containerSize.height - titleSize.height - descSize.height);
+      let ch = containerSize.height - titleSize.height - descSize.height;
       if (ch === 0) {
         // 高度为0 是因为用户没有设置高度
         ch = 350;
@@ -251,36 +285,47 @@ function createPlot<IPlotConfig extends Record<string, any>>(
       if (Math.abs(chartHeight - ch) > 1) {
         setChartHeight(ch);
       }
-    },  [container.current, titleDom.current, chartHeight, descDom.current])
-    const resize = useCallback(debounce(resizeFn, 500),[resizeFn])
+    }, [container.current, titleDom.current, chartHeight, descDom.current]);
+    const resize = useCallback(debounce(resizeFn, 500), [resizeFn]);
 
-    const FallbackComponent = React.isValidElement(errorContent) ? () => errorContent : errorContent;
+    const FallbackComponent = React.isValidElement(errorContent)
+      ? () => errorContent
+      : errorContent;
     // 每个图表的showPlaceholder 逻辑不一样，有的是判断value，该方法为静态方法
     if (placeholder && !realCfg.data) {
       const pl = placeholder === true ? DEFAULT_PLACEHOLDER : placeholder;
       // plot 默认是400px高度
-      return <ErrorBoundary FallbackComponent={FallbackComponent} {...ErrorBoundaryProps}>
-        <div style={{ width: props.width || '100%',  height: props.height || 400, textAlign: 'center', position: 'relative' }}>
-          {pl}
-        </div>
-      </ErrorBoundary>;
+      return (
+        <ErrorBoundary FallbackComponent={FallbackComponent} {...ErrorBoundaryProps}>
+          <div
+            style={{
+              width: props.width || '100%',
+              height: props.height || 400,
+              textAlign: 'center',
+              position: 'relative',
+            }}
+          >
+            {pl}
+          </div>
+        </ErrorBoundary>
+      );
     }
     const titleCfg = visibleHelper(title, false) as any;
     const descriptionCfg = visibleHelper(description, false) as any;
-    const titleStyle = {...TITLE_STYLE, ...titleCfg.style};
+    const titleStyle = { ...TITLE_STYLE, ...titleCfg.style };
     const descStyle = { ...DESCRIPTION_STYLE, ...descriptionCfg.style, top: titleStyle.height };
-    const isAutoFit = (forceFit !== undefined) ? forceFit : autoFit;
+    const isAutoFit = forceFit !== undefined ? forceFit : autoFit;
 
     if (!isNil(forceFit)) {
       warn(false, '请使用autoFit替代forceFit');
-    };
+    }
 
     useEffect(() => {
       if (!isAutoFit) {
         if (container.current) {
           resizeFn();
+          resizeObserver.current && resizeObserver.current.unobserve(container.current);
         }
-        resizeObserver.current && resizeObserver.current.unobserve(container.current);
       } else {
         if (container.current) {
           resizeFn();
@@ -291,33 +336,77 @@ function createPlot<IPlotConfig extends Record<string, any>>(
         }
       }
       return () => {
-        resizeObserver.current && container.current && resizeObserver.current.unobserve(container.current)
+        resizeObserver.current &&
+          container.current &&
+          resizeObserver.current.unobserve(container.current);
       };
-    }, [container.current, isAutoFit])
+    }, [container.current, isAutoFit]);
 
-
-    return <ErrorBoundary FallbackComponent={FallbackComponent} {...ErrorBoundaryProps}>
-      <div ref={container} className="bizcharts-plot" style={{ position:'relative', height: props.height || '100%', width: props.width || '100%' }}>
-        {/* title 不一定有 */}
-        { titleCfg.visible && <div ref={titleDom} {...polyfillTitleEvent(realCfg)} className="bizcharts-plot-title" style={titleStyle}>{titleCfg.text}</div> }
-        {/* description 不一定有 */}
-        { descriptionCfg.visible && <div ref={descDom} {...polyfillDescriptionEvent(realCfg)} className="bizcharts-plot-description" style={descStyle}>{descriptionCfg.text}</div> }
-        {!!chartHeight && <BxPlot
-          // API 统一
-          appendPadding={[10 , 5, 10, 10]}
-          autoFit={isAutoFit}
-          ref={ref}
-          {...realCfg}
-          PlotClass={Plot}
-          containerStyle={{
-            // 精度有误差
-            height: chartHeight
+    return (
+      <ErrorBoundary FallbackComponent={FallbackComponent} {...ErrorBoundaryProps}>
+        <div
+          ref={el => {
+            container.current = el; // null or div
+            // 合并ref，供搭建引擎消费。原来的ref已使用，搭建引擎需要最外层div。
+            if (isMaterial) {
+              if (isFunction(ref)) {
+                ref(el);
+              } else if (ref) {
+                ref.current = el;
+              }
+            }
           }}
-        />}
-      </div>
-    </ErrorBoundary>
+          className="bizcharts-plot"
+          {...containerProps}
+          style={{
+            position: 'relative',
+            height: props.height || '100%',
+            width: props.width || '100%',
+          }}
+        >
+          {/* title 不一定有 */}
+          {titleCfg.visible && (
+            <div
+              ref={titleDom}
+              {...polyfillTitleEvent(realCfg)}
+              className="bizcharts-plot-title"
+              style={titleStyle}
+            >
+              {titleCfg.text}
+            </div>
+          )}
+          {/* description 不一定有 */}
+          {descriptionCfg.visible && (
+            <div
+              ref={descDom}
+              {...polyfillDescriptionEvent(realCfg)}
+              className="bizcharts-plot-description"
+              style={descStyle}
+            >
+              {descriptionCfg.text}
+            </div>
+          )}
+          {!!chartHeight && (
+            <BxPlot
+              // API 统一
+              appendPadding={[10, 5, 10, 10]}
+              autoFit={isAutoFit}
+              // 注意：isMaterial ref 吐的是最外层div，供ali-lowcode-engine消费。原先的消费方式不能breack。
+              ref={isMaterial ? undefined : ref}
+              {...realCfg}
+              PlotClass={PlotClass}
+              containerStyle={{
+                // 精度有误差
+                ...containerStyle,
+                height: chartHeight,
+              }}
+            />
+          )}
+        </div>
+      </ErrorBoundary>
+    );
   });
-  Com.displayName = name || Plot.name;
+  Com.displayName = name || PlotClass.name;
   return Com;
 }
 
